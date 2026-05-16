@@ -2,45 +2,95 @@ package com.parth.weathersnap.data.repository
 
 import com.parth.weathersnap.data.local.WeatherReportDao
 import com.parth.weathersnap.data.local.WeatherReportEntity
+import com.parth.weathersnap.data.remote.GeocodingApiService
+import com.parth.weathersnap.data.remote.GeocodingResult
 import com.parth.weathersnap.data.remote.WeatherApiService
 import com.parth.weathersnap.data.remote.WeatherResponse
+import com.parth.weathersnap.utils.Constants
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * WeatherRepository - Single source of truth for weather data.
+ * WeatherRepository - Single source of truth for all data operations.
  *
- * This repository mediates between the remote API (Retrofit) and
- * the local database (Room). ViewModels should only interact with
- * this repository, never directly with the API or database.
+ * Mediates between:
+ *   - Remote: WeatherApiService (weather data) + GeocodingApiService (city search)
+ *   - Local: WeatherReportDao (Room database for saved reports)
  *
- * @param weatherApiService Retrofit service for API calls
- * @param weatherReportDao Room DAO for local database operations
+ * ViewModels should ONLY interact with this repository, never with APIs or DAOs directly.
+ *
+ * Also manages an in-memory cache for city search suggestions to avoid
+ * redundant API calls for the same search query.
  */
 @Singleton
 class WeatherRepository @Inject constructor(
     private val weatherApiService: WeatherApiService,
+    private val geocodingApiService: GeocodingApiService,
     private val weatherReportDao: WeatherReportDao
 ) {
+
+    // ==================== In-Memory City Cache ====================
+
+    /**
+     * Simple in-memory cache for city search results.
+     * Key = search query (lowercase), Value = list of matching cities.
+     * Avoids hitting the API for repeated searches.
+     */
+    private val cityCache = LinkedHashMap<String, List<GeocodingResult>>(
+        Constants.MAX_CACHED_CITIES, 0.75f, true
+    )
+
     // ==================== Remote (API) Operations ====================
 
     /**
-     * Fetch current weather from the remote API.
+     * Fetch current weather for a location.
      *
-     * TODO: Implement proper error handling and caching
+     * @param latitude City latitude
+     * @param longitude City longitude
+     * @return WeatherResponse with current conditions
      */
     suspend fun getCurrentWeather(
         latitude: Double,
-        longitude: Double,
-        apiKey: String
+        longitude: Double
     ): WeatherResponse {
-        return weatherApiService.getCurrentWeather(latitude, longitude, apiKey)
+        return weatherApiService.getCurrentWeather(latitude, longitude)
+    }
+
+    /**
+     * Search cities by name with in-memory caching.
+     *
+     * First checks the local cache. If the query was already searched,
+     * returns cached results instantly. Otherwise, calls the API and
+     * caches the results for future use.
+     *
+     * @param query City name search string
+     * @return List of matching cities
+     */
+    suspend fun searchCities(query: String): List<GeocodingResult> {
+        val key = query.lowercase().trim()
+        if (key.isBlank()) return emptyList()
+
+        // Check cache first
+        cityCache[key]?.let { return it }
+
+        // Call API and cache the result
+        val response = geocodingApiService.searchCities(name = query)
+        val results = response.results ?: emptyList()
+
+        // Evict oldest entries if cache is full
+        if (cityCache.size >= Constants.MAX_CACHED_CITIES) {
+            val oldestKey = cityCache.keys.firstOrNull()
+            oldestKey?.let { cityCache.remove(it) }
+        }
+        cityCache[key] = results
+
+        return results
     }
 
     // ==================== Local (Room) Operations ====================
 
-    /** Get all saved reports as a reactive Flow */
+    /** Get all saved reports as a reactive Flow (newest first) */
     fun getAllReports(): Flow<List<WeatherReportEntity>> {
         return weatherReportDao.getAllReports()
     }

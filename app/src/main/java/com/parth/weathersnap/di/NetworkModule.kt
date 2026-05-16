@@ -1,5 +1,6 @@
 package com.parth.weathersnap.di
 
+import com.parth.weathersnap.data.remote.GeocodingApiService
 import com.parth.weathersnap.data.remote.WeatherApiService
 import com.parth.weathersnap.utils.Constants
 import dagger.Module
@@ -11,13 +12,17 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
 
 /**
  * NetworkModule - Hilt module providing networking dependencies.
  *
- * Sets up OkHttp with logging interceptor and Retrofit with Gson converter.
- * All instances are application-scoped singletons.
+ * We need TWO Retrofit instances because Open-Meteo uses different base URLs:
+ *   1. Weather API: https://api.open-meteo.com/
+ *   2. Geocoding API: https://geocoding-api.open-meteo.com/
+ *
+ * @Named qualifiers distinguish between the two Retrofit instances.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -25,9 +30,7 @@ object NetworkModule {
 
     /**
      * Provides the OkHttp logging interceptor.
-     * Set to BODY level for full request/response logging during development.
-     *
-     * TODO: Change to NONE or BASIC for production builds
+     * BODY level logs full request/response for debugging during development.
      */
     @Provides
     @Singleton
@@ -37,7 +40,7 @@ object NetworkModule {
         }
     }
 
-    /** Provides the OkHttpClient with logging and timeout configuration */
+    /** Provides the shared OkHttpClient with logging and timeout configuration */
     @Provides
     @Singleton
     fun provideOkHttpClient(
@@ -51,25 +54,45 @@ object NetworkModule {
             .build()
     }
 
-    /** Provides the Retrofit instance configured with base URL and Gson converter */
+    /** Retrofit instance for the Weather API (api.open-meteo.com) */
     @Provides
     @Singleton
-    fun provideRetrofit(
-        okHttpClient: OkHttpClient
-    ): Retrofit {
+    @Named("weather")
+    fun provideWeatherRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(Constants.BASE_URL)
+            .baseUrl(Constants.WEATHER_BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
 
-    /** Provides the WeatherApiService implementation from Retrofit */
+    /** Retrofit instance for the Geocoding API (geocoding-api.open-meteo.com) */
+    @Provides
+    @Singleton
+    @Named("geocoding")
+    fun provideGeocodingRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(Constants.GEOCODING_BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    /** Provides the WeatherApiService from the weather Retrofit instance */
     @Provides
     @Singleton
     fun provideWeatherApiService(
-        retrofit: Retrofit
+        @Named("weather") retrofit: Retrofit
     ): WeatherApiService {
         return retrofit.create(WeatherApiService::class.java)
+    }
+
+    /** Provides the GeocodingApiService from the geocoding Retrofit instance */
+    @Provides
+    @Singleton
+    fun provideGeocodingApiService(
+        @Named("geocoding") retrofit: Retrofit
+    ): GeocodingApiService {
+        return retrofit.create(GeocodingApiService::class.java)
     }
 }

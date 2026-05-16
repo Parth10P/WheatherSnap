@@ -3,25 +3,25 @@ package com.parth.weathersnap.utils
 /**
  * Constants - App-wide constant values.
  *
- * Centralized location for API URLs, keys, and other configuration.
- * This makes it easy to update values across the entire app.
+ * Open-Meteo is a free, open-source weather API that does NOT require an API key.
+ * We use two base URLs:
+ *   1. Weather API - for current weather data (takes latitude/longitude)
+ *   2. Geocoding API - for city name autocomplete (search cities by name)
  */
 object Constants {
 
-    /**
-     * Weather API base URL.
-     * TODO: Replace with your actual weather API base URL
-     * Example for OpenWeatherMap: "https://api.openweathermap.org/data/2.5/"
-     */
-    const val BASE_URL = "https://api.openweathermap.org/data/2.5/"
+    /** Base URL for Open-Meteo weather API */
+    const val WEATHER_BASE_URL = "https://api.open-meteo.com/"
 
-    /**
-     * Weather API key.
-     * TODO: Replace with your actual API key
-     * IMPORTANT: In production, store this securely (e.g., in local.properties or BuildConfig)
-     */
-    const val API_KEY = "YOUR_API_KEY_HERE"
+    /** Base URL for Open-Meteo Geocoding API (city search) */
+    const val GEOCODING_BASE_URL = "https://geocoding-api.open-meteo.com/"
 
     /** Database name */
     const val DATABASE_NAME = "weathersnap_database"
+
+    /** Image compression quality (0-100) */
+    const val COMPRESSION_QUALITY = 50
+
+    /** Maximum number of cached city suggestions */
+    const val MAX_CACHED_CITIES = 50
 }

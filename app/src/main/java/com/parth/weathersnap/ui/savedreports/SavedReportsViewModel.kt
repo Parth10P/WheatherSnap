@@ -8,29 +8,25 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * SavedReportsUiState - Represents the UI state for the Saved Reports screen.
- *
- * @param isLoading Whether reports are being loaded
- * @param reports List of saved weather reports
- * @param errorMessage Error message if something went wrong (nullable)
+ * SavedReportsUiState - UI state for the Saved Reports screen.
  */
 data class SavedReportsUiState(
-    val isLoading: Boolean = false,
+    val isLoading: Boolean = true,
     val reports: List<WeatherReportEntity> = emptyList(),
     val errorMessage: String? = null
 )
 
 /**
- * SavedReportsViewModel - ViewModel for the Saved Reports screen.
+ * SavedReportsViewModel - Manages the list of saved weather reports.
  *
- * Manages saved reports state using StateFlow.
- * Collects reports from the Room database via the repository.
- *
- * @param repository WeatherRepository for data operations
+ * Observes Room database via Flow for reactive updates.
+ * Supports deleting individual reports and clearing all reports.
  */
 @HiltViewModel
 class SavedReportsViewModel @Inject constructor(
@@ -44,18 +40,73 @@ class SavedReportsViewModel @Inject constructor(
         loadReports()
     }
 
-    /** Load all saved reports from the local database */
+    /**
+     * Load all saved reports from Room, observing as a Flow.
+     * Any changes to the database will automatically update the UI.
+     */
     private fun loadReports() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            repository.getAllReports().collect { reports ->
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    reports = reports
-                )
+            repository.getAllReports()
+                .catch { e ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "Failed to load reports: ${e.localizedMessage}"
+                        )
+                    }
+                }
+                .collect { reports ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            reports = reports,
+                            errorMessage = null
+                        )
+                    }
+                }
+        }
+    }
+
+    /** Delete a single report */
+    fun deleteReport(report: WeatherReportEntity) {
+        viewModelScope.launch {
+            try {
+                // Also delete the image file if it exists
+                report.imagePath?.let { path ->
+                    val file = java.io.File(path)
+                    if (file.exists()) file.delete()
+                }
+                repository.deleteReport(report)
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(errorMessage = "Failed to delete report: ${e.localizedMessage}")
+                }
             }
         }
     }
 
-    // TODO: Add functions to delete reports, search, filter, etc.
+    /** Delete all reports */
+    fun deleteAllReports() {
+        viewModelScope.launch {
+            try {
+                // Delete all image files
+                _uiState.value.reports.forEach { report ->
+                    report.imagePath?.let { path ->
+                        val file = java.io.File(path)
+                        if (file.exists()) file.delete()
+                    }
+                }
+                repository.deleteAllReports()
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(errorMessage = "Failed to delete reports: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    /** Clear error message */
+    fun clearError() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
 }
