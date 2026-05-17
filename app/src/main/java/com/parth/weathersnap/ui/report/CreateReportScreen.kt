@@ -100,7 +100,8 @@ fun CreateReportScreen(
                     Text(
                         text = "Notes",
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     InlineStatusCard(
                         title = "What to include",
@@ -156,7 +157,8 @@ private fun WeatherSummarySection(uiState: CreateReportUiState) {
         Text(
             text = "Weather Summary",
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         Row(
@@ -169,7 +171,8 @@ private fun WeatherSummarySection(uiState: CreateReportUiState) {
                 Text(
                     text = uiState.cityName,
                     style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = uiState.weatherCondition,
@@ -265,7 +268,8 @@ private fun PhotoSection(
                 Text(
                     text = "Attached Photo",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 FramedImage(
                     modifier = Modifier
