@@ -1,5 +1,7 @@
 package com.parth.weathersnap.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -15,23 +17,6 @@ import com.parth.weathersnap.ui.report.CreateReportViewModel
 import com.parth.weathersnap.ui.savedreports.SavedReportsScreen
 import com.parth.weathersnap.ui.weather.WeatherScreen
 
-/**
- * WeatherSnapNavHost - Central navigation graph for the entire app.
- *
- * DATA FLOW:
- *   1. WeatherScreen → searchs city → shows weather → FAB navigates to CreateReport
- *      (passes weather data as route arguments)
- *   2. CreateReportScreen → camera button → CameraScreen
- *      (image path passed back via savedStateHandle)
- *   3. CameraScreen → captures + compresses → navigates back with image data
- *   4. CreateReportScreen → saves to Room → navigates back to Weather
- *   5. WeatherScreen → top bar icon → SavedReportsScreen
- *
- * WHY savedStateHandle for image data:
- *   Navigation Compose lets us pass results back to the PREVIOUS screen
- *   via the previous back stack entry's savedStateHandle. This avoids
- *   complex shared ViewModels or result launchers.
- */
 @Composable
 fun WeatherSnapNavHost(
     modifier: Modifier = Modifier,
@@ -42,13 +27,17 @@ fun WeatherSnapNavHost(
         startDestination = Screen.Weather.route,
         modifier = modifier
     ) {
-        // ==================== Weather Screen ====================
         composable(route = Screen.Weather.route) {
             WeatherScreen(
                 onNavigateToCreateReport = { cityName, temperature, humidity, pressure, windSpeed, weatherCondition ->
                     navController.navigate(
                         Screen.CreateReport.createRoute(
-                            cityName, temperature, humidity, pressure, windSpeed, weatherCondition
+                            cityName = cityName,
+                            temperature = temperature,
+                            humidity = humidity,
+                            pressure = pressure,
+                            windSpeed = windSpeed,
+                            weatherCondition = weatherCondition
                         )
                     )
                 },
@@ -58,7 +47,6 @@ fun WeatherSnapNavHost(
             )
         }
 
-        // ==================== Create Report Screen ====================
         composable(
             route = Screen.CreateReport.route,
             arguments = listOf(
@@ -68,12 +56,21 @@ fun WeatherSnapNavHost(
                 navArgument("pressure") { type = NavType.StringType },
                 navArgument("windSpeed") { type = NavType.StringType },
                 navArgument("weatherCondition") { type = NavType.StringType }
-            )
+            ),
+            enterTransition = {
+                slideIntoContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = tween(280)
+                )
+            },
+            popExitTransition = {
+                slideOutOfContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = tween(280)
+                )
+            }
         ) { backStackEntry ->
-            // Get the ViewModel (SavedStateHandle auto-populates from nav arguments)
             val viewModel: CreateReportViewModel = hiltViewModel()
-
-            // Check if CameraScreen returned image data
             val savedState = backStackEntry.savedStateHandle
             val imagePath = savedState.get<String>("imagePath")
             val originalSize = savedState.get<Long>("originalSize")
@@ -81,28 +78,41 @@ fun WeatherSnapNavHost(
 
             if (imagePath != null && originalSize != null && compressedSize != null) {
                 viewModel.setImageData(imagePath, originalSize, compressedSize)
-                // Clear to avoid re-processing on recomposition
                 savedState.remove<String>("imagePath")
                 savedState.remove<Long>("originalSize")
                 savedState.remove<Long>("compressedSize")
             }
 
             CreateReportScreen(
-                onNavigateToCamera = {
-                    navController.navigate(Screen.Camera.route)
-                },
-                onNavigateBack = {
-                    navController.popBackStack()
+                onNavigateToCamera = { navController.navigate(Screen.Camera.route) },
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToSavedReports = {
+                    navController.navigate(Screen.SavedReports.route) {
+                        popUpTo(Screen.Weather.route)
+                        launchSingleTop = true
+                    }
                 },
                 viewModel = viewModel
             )
         }
 
-        // ==================== Camera Screen ====================
-        composable(route = Screen.Camera.route) {
+        composable(
+            route = Screen.Camera.route,
+            enterTransition = {
+                slideIntoContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = tween(280)
+                )
+            },
+            popExitTransition = {
+                slideOutOfContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = tween(280)
+                )
+            }
+        ) {
             CameraScreen(
                 onImageCaptured = { imagePath, originalSize, compressedSize ->
-                    // Pass image data back to CreateReportScreen
                     navController.previousBackStackEntry?.savedStateHandle?.apply {
                         set("imagePath", imagePath)
                         set("originalSize", originalSize)
@@ -110,19 +120,26 @@ fun WeatherSnapNavHost(
                     }
                     navController.popBackStack()
                 },
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
-        // ==================== Saved Reports Screen ====================
-        composable(route = Screen.SavedReports.route) {
-            SavedReportsScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
+        composable(
+            route = Screen.SavedReports.route,
+            enterTransition = {
+                slideIntoContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = tween(280)
+                )
+            },
+            popExitTransition = {
+                slideOutOfContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = tween(280)
+                )
+            }
+        ) {
+            SavedReportsScreen(onNavigateBack = { navController.popBackStack() })
         }
     }
 }

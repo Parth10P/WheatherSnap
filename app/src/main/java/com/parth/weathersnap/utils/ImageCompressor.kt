@@ -76,7 +76,6 @@ object ImageCompressor {
                 compressedSize = compressedSize
             )
         } catch (e: Exception) {
-            e.printStackTrace()
             null
         }
     }

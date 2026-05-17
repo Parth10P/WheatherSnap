@@ -61,7 +61,7 @@ data class GeocodingResult(
     val country: String = "",
     @SerializedName("country_code")
     val countryCode: String = "",
-    val admin1: String? = null  // State/Region
+    val admin1: String? = null
 )
 
 // ==================== Weather Code Mapping ====================
@@ -91,29 +91,5 @@ fun getWeatherCondition(code: Int): String {
         95 -> "Thunderstorm"
         96, 99 -> "Thunderstorm with Hail"
         else -> "Unknown"
-    }
-}
-
-/**
- * Maps weather codes to emoji icons for visual display.
- */
-fun getWeatherEmoji(code: Int): String {
-    return when (code) {
-        0 -> "☀️"
-        1 -> "🌤️"
-        2 -> "⛅"
-        3 -> "☁️"
-        45, 48 -> "🌫️"
-        51, 53, 55 -> "🌦️"
-        56, 57 -> "🌧️"
-        61, 63, 65 -> "🌧️"
-        66, 67 -> "🌨️"
-        71, 73, 75 -> "❄️"
-        77 -> "🌨️"
-        80, 81, 82 -> "🌧️"
-        85, 86 -> "🌨️"
-        95 -> "⛈️"
-        96, 99 -> "⛈️"
-        else -> "🌡️"
     }
 }

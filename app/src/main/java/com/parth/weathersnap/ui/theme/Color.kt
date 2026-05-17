@@ -2,54 +2,48 @@ package com.parth.weathersnap.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// ==================== Light Theme Colors ====================
-// A sky-blue inspired palette that evokes weather/atmosphere
+val PrimaryLight = Color(0xFFD9E89A)
+val OnPrimaryLight = Color(0xFF1E2A0B)
+val PrimaryContainerLight = Color(0xFF4D5A1C)
+val OnPrimaryContainerLight = Color(0xFFF2F8D5)
 
-val PrimaryLight = Color(0xFF1565C0)        // Deep sky blue
-val OnPrimaryLight = Color(0xFFFFFFFF)
-val PrimaryContainerLight = Color(0xFFD1E4FF) // Soft blue container
-val OnPrimaryContainerLight = Color(0xFF001D36)
+val SecondaryLight = Color(0xFFC0E0D8)
+val OnSecondaryLight = Color(0xFF173029)
+val SecondaryContainerLight = Color(0xFF33534B)
+val OnSecondaryContainerLight = Color(0xFFE5F4EF)
 
-val SecondaryLight = Color(0xFF535F70)
-val OnSecondaryLight = Color(0xFFFFFFFF)
-val SecondaryContainerLight = Color(0xFFD7E3F7)
-val OnSecondaryContainerLight = Color(0xFF101C2B)
+val TertiaryLight = Color(0xFF9AB86F)
+val OnTertiaryLight = Color(0xFF1A2B09)
+val TertiaryContainerLight = Color(0xFF495D2C)
+val OnTertiaryContainerLight = Color(0xFFE9F3D6)
 
-val TertiaryLight = Color(0xFF6B5778)
-val OnTertiaryLight = Color(0xFFFFFFFF)
-val TertiaryContainerLight = Color(0xFFF2DAFF)
-val OnTertiaryContainerLight = Color(0xFF251431)
+val ErrorLight = Color(0xFFFFB4AB)
+val BackgroundLight = Color(0xFF18210F)
+val SurfaceLight = Color(0xFF11180D)
+val OnSurfaceLight = Color(0xFFF1F3EA)
+val SurfaceVariantLight = Color(0xFF414235)
+val OnSurfaceVariantLight = Color(0xFFD1D4C5)
+val OutlineLight = Color(0xFF74786A)
 
-val ErrorLight = Color(0xFFBA1A1A)
-val BackgroundLight = Color(0xFFF8F9FF)
-val SurfaceLight = Color(0xFFF8F9FF)
-val OnSurfaceLight = Color(0xFF191C20)
-val SurfaceVariantLight = Color(0xFFDFE2EB)
-val OnSurfaceVariantLight = Color(0xFF43474E)
-val OutlineLight = Color(0xFF73777F)
+val PrimaryDark = PrimaryLight
+val OnPrimaryDark = OnPrimaryLight
+val PrimaryContainerDark = PrimaryContainerLight
+val OnPrimaryContainerDark = OnPrimaryContainerLight
 
-// ==================== Dark Theme Colors ====================
-// Rich dark mode with blue accents
+val SecondaryDark = SecondaryLight
+val OnSecondaryDark = OnSecondaryLight
+val SecondaryContainerDark = SecondaryContainerLight
+val OnSecondaryContainerDark = OnSecondaryContainerLight
 
-val PrimaryDark = Color(0xFF9ECAFF)
-val OnPrimaryDark = Color(0xFF003258)
-val PrimaryContainerDark = Color(0xFF00497D)
-val OnPrimaryContainerDark = Color(0xFFD1E4FF)
+val TertiaryDark = TertiaryLight
+val OnTertiaryDark = OnTertiaryLight
+val TertiaryContainerDark = TertiaryContainerLight
+val OnTertiaryContainerDark = OnTertiaryContainerLight
 
-val SecondaryDark = Color(0xFFBBC7DB)
-val OnSecondaryDark = Color(0xFF253140)
-val SecondaryContainerDark = Color(0xFF3B4858)
-val OnSecondaryContainerDark = Color(0xFFD7E3F7)
-
-val TertiaryDark = Color(0xFFD6BEE4)
-val OnTertiaryDark = Color(0xFF3B2948)
-val TertiaryContainerDark = Color(0xFF523F5F)
-val OnTertiaryContainerDark = Color(0xFFF2DAFF)
-
-val ErrorDark = Color(0xFFFFB4AB)
-val BackgroundDark = Color(0xFF111318)
-val SurfaceDark = Color(0xFF111318)
-val OnSurfaceDark = Color(0xFFE2E2E9)
-val SurfaceVariantDark = Color(0xFF43474E)
-val OnSurfaceVariantDark = Color(0xFFC3C7CF)
-val OutlineDark = Color(0xFF8D9199)
+val ErrorDark = ErrorLight
+val BackgroundDark = BackgroundLight
+val SurfaceDark = SurfaceLight
+val OnSurfaceDark = OnSurfaceLight
+val SurfaceVariantDark = SurfaceVariantLight
+val OnSurfaceVariantDark = OnSurfaceVariantLight
+val OutlineDark = OutlineLight

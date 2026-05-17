@@ -55,7 +55,7 @@ interface GeocodingApiService {
     @GET("v1/search")
     suspend fun searchCities(
         @Query("name") name: String,
-        @Query("count") count: Int = 5,
+        @Query("count") count: Int,
         @Query("language") language: String = "en"
     ): GeocodingResponse
 }

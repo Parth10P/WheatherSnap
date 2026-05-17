@@ -1,18 +1,11 @@
 package com.parth.weathersnap.ui.theme
 
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 
-/**
- * Dark color scheme using our custom weather-themed palette.
- */
 private val DarkColorScheme = darkColorScheme(
     primary = PrimaryDark,
     onPrimary = OnPrimaryDark,
@@ -32,12 +25,10 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = OnSurfaceDark,
     surfaceVariant = SurfaceVariantDark,
     onSurfaceVariant = OnSurfaceVariantDark,
-    outline = OutlineDark
+    outline = OutlineDark,
+    scrim = Color.Black
 )
 
-/**
- * Light color scheme using our custom weather-themed palette.
- */
 private val LightColorScheme = lightColorScheme(
     primary = PrimaryLight,
     onPrimary = OnPrimaryLight,
@@ -57,34 +48,17 @@ private val LightColorScheme = lightColorScheme(
     onSurface = OnSurfaceLight,
     surfaceVariant = SurfaceVariantLight,
     onSurfaceVariant = OnSurfaceVariantLight,
-    outline = OutlineLight
+    outline = OutlineLight,
+    scrim = Color.Black
 )
 
-/**
- * WeatherSnap Theme - Material 3 theme wrapper.
- *
- * Supports:
- *   - Dynamic colors on Android 12+ (Material You)
- *   - Custom light/dark color schemes as fallback
- *   - System dark theme detection
- */
 @Composable
-fun WheatherSnapTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+fun WeatherSnapTheme(
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
         typography = Typography,
         content = content
     )

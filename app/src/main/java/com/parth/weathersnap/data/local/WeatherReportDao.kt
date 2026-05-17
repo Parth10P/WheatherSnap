@@ -20,10 +20,6 @@ interface WeatherReportDao {
     @Query("SELECT * FROM weather_reports ORDER BY timestamp DESC")
     fun getAllReports(): Flow<List<WeatherReportEntity>>
 
-    /** Get a single report by its ID */
-    @Query("SELECT * FROM weather_reports WHERE id = :id")
-    suspend fun getReportById(id: Long): WeatherReportEntity?
-
     /** Insert a new report (replace on conflict) */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertReport(report: WeatherReportEntity): Long

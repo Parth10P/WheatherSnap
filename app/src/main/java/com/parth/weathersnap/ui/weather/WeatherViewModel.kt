@@ -2,11 +2,10 @@ package com.parth.weathersnap.ui.weather
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.parth.weathersnap.data.remote.CurrentWeather
 import com.parth.weathersnap.data.remote.GeocodingResult
 import com.parth.weathersnap.data.remote.getWeatherCondition
-import com.parth.weathersnap.data.remote.getWeatherEmoji
 import com.parth.weathersnap.data.repository.WeatherRepository
+import com.parth.weathersnap.utils.formattedName
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -17,48 +16,31 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/**
- * WeatherUiState - Represents the complete UI state for the Weather screen.
- *
- * This single state object drives the entire screen. Compose observes this via
- * collectAsState() and recomposes when any field changes.
- */
+data class WeatherDetails(
+    val cityName: String,
+    val temperature: Double,
+    val humidity: Int,
+    val pressure: Double,
+    val windSpeed: Double,
+    val weatherCondition: String
+)
+
+sealed interface WeatherContentState {
+    data object Empty : WeatherContentState
+    data object Loading : WeatherContentState
+    data class Success(val weather: WeatherDetails) : WeatherContentState
+}
+
 data class WeatherUiState(
-    // Search state
     val searchQuery: String = "",
     val suggestions: List<GeocodingResult> = emptyList(),
     val showSuggestions: Boolean = false,
-
-    // Weather data state
-    val cityName: String = "",
-    val temperature: Double = 0.0,
-    val humidity: Int = 0,
-    val pressure: Double = 0.0,
-    val windSpeed: Double = 0.0,
-    val weatherCondition: String = "",
-    val weatherEmoji: String = "🌡️",
-    val weatherCode: Int = -1,
-
-    // Selected city coordinates (needed for report creation)
-    val latitude: Double = 0.0,
-    val longitude: Double = 0.0,
-
-    // Loading/Error states
-    val isLoading: Boolean = false,
     val isSearching: Boolean = false,
-    val hasWeatherData: Boolean = false,
+    val selectedCity: GeocodingResult? = null,
+    val weatherState: WeatherContentState = WeatherContentState.Empty,
     val errorMessage: String? = null
 )
 
-/**
- * WeatherViewModel - Manages weather search and display logic.
- *
- * Handles:
- *   1. City name search with debounce (waits 300ms after user stops typing)
- *   2. Displaying autocomplete suggestions from Open-Meteo Geocoding API
- *   3. Fetching weather data when user selects a city
- *   4. Managing loading/error/success states
- */
 @HiltViewModel
 class WeatherViewModel @Inject constructor(
     private val repository: WeatherRepository
@@ -67,128 +49,177 @@ class WeatherViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(WeatherUiState())
     val uiState: StateFlow<WeatherUiState> = _uiState.asStateFlow()
 
-    // Reference to the current search job so we can cancel it on new input (debounce)
     private var searchJob: Job? = null
 
-    /**
-     * Called when the user types in the search field.
-     *
-     * Uses debounce: waits 300ms after the last keystroke before searching.
-     * This prevents flooding the API with requests on every character typed.
-     */
     fun onSearchQueryChanged(query: String) {
-        _uiState.update { it.copy(searchQuery = query) }
+        _uiState.update {
+            it.copy(
+                searchQuery = query,
+                selectedCity = null,
+                isSearching = query.length >= 3
+            )
+        }
 
-        // Cancel the previous search job if user is still typing
         searchJob?.cancel()
 
-        if (query.length < 2) {
-            _uiState.update { it.copy(suggestions = emptyList(), showSuggestions = false) }
+        if (query.length < 3) {
+            _uiState.update {
+                it.copy(
+                    suggestions = emptyList(),
+                    showSuggestions = false,
+                    isSearching = false
+                )
+            }
             return
         }
 
         searchJob = viewModelScope.launch {
-            // Debounce: wait 300ms before searching
-            delay(300)
-            _uiState.update { it.copy(isSearching = true) }
-            try {
-                val results = repository.searchCities(query)
-                _uiState.update {
-                    it.copy(
-                        suggestions = results,
-                        showSuggestions = results.isNotEmpty(),
-                        isSearching = false
-                    )
+            delay(250)
+            runCatching { repository.searchCities(query) }
+                .onSuccess { results ->
+                    _uiState.update {
+                        it.copy(
+                            suggestions = results,
+                            showSuggestions = results.isNotEmpty(),
+                            isSearching = false
+                        )
+                    }
                 }
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(isSearching = false, showSuggestions = false)
+                .onFailure {
+                    _uiState.update {
+                        it.copy(
+                            suggestions = emptyList(),
+                            showSuggestions = false,
+                            isSearching = false
+                        )
+                    }
                 }
-            }
         }
     }
 
-    /**
-     * Called when the user selects a city from the suggestions dropdown.
-     * Fetches weather data for that city's coordinates.
-     */
-    fun onCitySelected(city: GeocodingResult) {
-        // Update search field with selected city name and hide suggestions
-        val displayName = buildString {
-            append(city.name)
-            city.admin1?.let { append(", $it") }
-            if (city.country.isNotBlank()) append(", ${city.country}")
+    fun onSearchRequested() {
+        val current = _uiState.value
+        val selected = current.selectedCity
+        if (selected != null && current.searchQuery == selected.formattedName()) {
+            fetchWeather(selected)
+            return
         }
+
+        val query = current.searchQuery.trim()
+        if (query.length < 3) {
+            _uiState.update { it.copy(errorMessage = "Enter at least 3 characters to search.") }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isSearching = true,
+                    suggestions = emptyList(),
+                    showSuggestions = false
+                )
+            }
+            runCatching { repository.searchCities(query) }
+                .onSuccess { results ->
+                    val firstResult = results.firstOrNull()
+                    if (firstResult == null) {
+                        _uiState.update {
+                            it.copy(
+                                isSearching = false,
+                                weatherState = WeatherContentState.Empty,
+                                errorMessage = "No matching cities found."
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                isSearching = false,
+                                suggestions = results,
+                                selectedCity = firstResult,
+                                searchQuery = firstResult.formattedName()
+                            )
+                        }
+                        fetchWeather(firstResult)
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            isSearching = false,
+                            errorMessage = error.localizedMessage ?: "Unable to search for cities."
+                        )
+                    }
+                }
+        }
+    }
+
+    fun onCitySelected(city: GeocodingResult) {
         _uiState.update {
             it.copy(
-                searchQuery = displayName,
-                showSuggestions = false,
-                suggestions = emptyList()
+                searchQuery = city.formattedName(),
+                selectedCity = city,
+                suggestions = emptyList(),
+                showSuggestions = false
             )
         }
-
-        // Fetch weather for this city
-        fetchWeather(city.name, city.latitude, city.longitude)
+        fetchWeather(city)
     }
 
-    /**
-     * Dismiss the suggestions dropdown (e.g., when user taps elsewhere).
-     */
     fun dismissSuggestions() {
         _uiState.update { it.copy(showSuggestions = false) }
     }
 
-    /**
-     * Fetch current weather data from Open-Meteo API.
-     */
-    private fun fetchWeather(cityName: String, lat: Double, lon: Double) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            try {
-                val response = repository.getCurrentWeather(lat, lon)
-                val current = response.current
-
-                if (current != null) {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            hasWeatherData = true,
-                            cityName = cityName,
-                            temperature = current.temperature,
-                            humidity = current.humidity,
-                            pressure = current.pressure,
-                            windSpeed = current.windSpeed,
-                            weatherCode = current.weatherCode,
-                            weatherCondition = getWeatherCondition(current.weatherCode),
-                            weatherEmoji = getWeatherEmoji(current.weatherCode),
-                            latitude = lat,
-                            longitude = lon,
-                            errorMessage = null
-                        )
-                    }
-                } else {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = "No weather data available for this location"
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = "Failed to fetch weather: ${e.localizedMessage}"
-                    )
-                }
-            }
-        }
-    }
-
-    /**
-     * Clear error message after it's been shown to the user.
-     */
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    private fun fetchWeather(city: GeocodingResult) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    showSuggestions = false,
+                    isSearching = false,
+                    weatherState = WeatherContentState.Loading,
+                    errorMessage = null
+                )
+            }
+
+            runCatching { repository.getCurrentWeather(city.latitude, city.longitude) }
+                .onSuccess { response ->
+                    val current = response.current
+                    if (current == null) {
+                        _uiState.update {
+                            it.copy(
+                                weatherState = WeatherContentState.Empty,
+                                errorMessage = "Weather data is unavailable for this city."
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                selectedCity = city,
+                                weatherState = WeatherContentState.Success(
+                                    WeatherDetails(
+                                        cityName = city.formattedName(),
+                                        temperature = current.temperature,
+                                        humidity = current.humidity,
+                                        pressure = current.pressure,
+                                        windSpeed = current.windSpeed,
+                                        weatherCondition = getWeatherCondition(current.weatherCode)
+                                    )
+                                )
+                            )
+                        }
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            weatherState = WeatherContentState.Empty,
+                            errorMessage = error.localizedMessage ?: "Unable to load weather details."
+                        )
+                    }
+                }
+        }
     }
 }

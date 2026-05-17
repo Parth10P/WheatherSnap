@@ -1,89 +1,75 @@
 package com.parth.weathersnap.ui.weather
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.background
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Compress
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.parth.weathersnap.data.remote.GeocodingResult
+import com.parth.weathersnap.ui.components.EmptyStateCard
+import com.parth.weathersnap.ui.components.HeaderCard
+import com.parth.weathersnap.ui.components.MetricCard
+import com.parth.weathersnap.ui.components.PanelCard
+import com.parth.weathersnap.ui.components.WeatherSnapBackground
+import com.parth.weathersnap.utils.formatPressure
+import com.parth.weathersnap.utils.formatTemperature
+import com.parth.weathersnap.utils.formatWindSpeed
+import com.parth.weathersnap.utils.formattedName
 
-/**
- * WeatherScreen - Home screen showing city search and weather details.
- *
- * FEATURES:
- *   1. Search bar with city autocomplete (debounced)
- *   2. Dropdown suggestions list
- *   3. Current weather display (temp, humidity, pressure, wind, condition)
- *   4. FAB to create a new report
- *   5. Top bar action to view saved reports
- *   6. Loading, error, and empty states with animations
- */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WeatherScreen(
     onNavigateToCreateReport: (cityName: String, temperature: Double, humidity: Int, pressure: Double, windSpeed: Double, weatherCondition: String) -> Unit,
     onNavigateToSavedReports: () -> Unit,
     viewModel: WeatherViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val focusManager = LocalFocusManager.current
 
-    // Show errors via Snackbar
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let { message ->
             snackbarHostState.showSnackbar(message)
@@ -91,177 +77,178 @@ fun WeatherScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "WeatherSnap",
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                actions = {
-                    IconButton(onClick = onNavigateToSavedReports) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.List,
-                            contentDescription = "Saved Reports"
-                        )
-                    }
-                }
-            )
-        },
-        floatingActionButton = {
-            // Only show FAB when weather data is loaded
-            AnimatedVisibility(
-                visible = uiState.hasWeatherData,
-                enter = fadeIn() + slideInVertically { it },
-                exit = fadeOut()
-            ) {
-                FloatingActionButton(
-                    onClick = {
-                        onNavigateToCreateReport(
-                            uiState.cityName,
-                            uiState.temperature,
-                            uiState.humidity,
-                            uiState.pressure,
-                            uiState.windSpeed,
-                            uiState.weatherCondition
-                        )
-                    },
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Create Report"
-                    )
-                }
-            }
-        }
-    ) { innerPadding ->
+    WeatherSnapBackground(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
+                .imePadding()
+                .padding(horizontal = 16.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // ==================== Search Section ====================
-            SearchSection(
+            SnackbarHost(hostState = snackbarHostState)
+
+            HeaderCard(
+                title = "WeatherSnap",
+                subtitle = "Live weather reports with camera evidence",
+                actionLabel = "Reports",
+                onActionClick = onNavigateToSavedReports
+            )
+
+            SearchPanel(
                 query = uiState.searchQuery,
                 suggestions = uiState.suggestions,
                 showSuggestions = uiState.showSuggestions,
                 isSearching = uiState.isSearching,
                 onQueryChanged = viewModel::onSearchQueryChanged,
-                onCitySelected = viewModel::onCitySelected,
-                onDismissSuggestions = viewModel::dismissSuggestions
+                onSearch = {
+                    focusManager.clearFocus()
+                    viewModel.dismissSuggestions()
+                    viewModel.onSearchRequested()
+                },
+                onSuggestionSelected = {
+                    focusManager.clearFocus()
+                    viewModel.onCitySelected(it)
+                }
             )
 
-            // ==================== Content Section ====================
-            when {
-                uiState.isLoading -> LoadingState()
-                uiState.hasWeatherData -> WeatherContent(uiState)
-                else -> EmptyState()
+            when (val state = uiState.weatherState) {
+                WeatherContentState.Empty -> {
+                    EmptyStateCard(
+                        title = "No weather selected",
+                        message = "Search for a city to load current conditions and prepare a report."
+                    )
+                }
+
+                WeatherContentState.Loading -> {
+                    PanelCard {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.primary,
+                                strokeWidth = 2.5.dp
+                            )
+                            Column {
+                                Text(
+                                    text = "Loading weather",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "Fetching the latest conditions for your selected city.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+
+                is WeatherContentState.Success -> {
+                    WeatherSummaryCard(
+                        weather = state.weather,
+                        onCreateReport = {
+                            onNavigateToCreateReport(
+                                state.weather.cityName,
+                                state.weather.temperature,
+                                state.weather.humidity,
+                                state.weather.pressure,
+                                state.weather.windSpeed,
+                                state.weather.weatherCondition
+                            )
+                        }
+                    )
+                }
             }
         }
     }
 }
 
-/**
- * Search bar with autocomplete dropdown.
- */
 @Composable
-private fun SearchSection(
+private fun SearchPanel(
     query: String,
-    suggestions: List<com.parth.weathersnap.data.remote.GeocodingResult>,
+    suggestions: List<GeocodingResult>,
     showSuggestions: Boolean,
     isSearching: Boolean,
     onQueryChanged: (String) -> Unit,
-    onCitySelected: (com.parth.weathersnap.data.remote.GeocodingResult) -> Unit,
-    onDismissSuggestions: () -> Unit
+    onSearch: () -> Unit,
+    onSuggestionSelected: (GeocodingResult) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-    ) {
-        // Search TextField
-        OutlinedTextField(
-            value = query,
-            onValueChange = onQueryChanged,
+    PanelCard {
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Search city...") },
-            placeholder = { Text("e.g., London, Tokyo, Mumbai") },
-            leadingIcon = {
-                Icon(Icons.Default.Search, contentDescription = "Search")
-            },
-            trailingIcon = {
-                if (isSearching) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp
-                    )
-                }
-            },
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = onQueryChanged,
+                modifier = Modifier.weight(1f),
+                textStyle = MaterialTheme.typography.bodyLarge,
+                label = { Text("City") },
+                placeholder = { Text("Search by city name") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+                trailingIcon = {
+                    if (isSearching) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.width(18.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                },
+                shape = MaterialTheme.shapes.large,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedContainerColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.18f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.14f)
+                )
             )
+
+            Button(
+                onClick = onSearch,
+                modifier = Modifier.height(56.dp),
+                shape = MaterialTheme.shapes.extraLarge,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text("Search")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "Enter more than 2 letters to start city suggestions.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        // Suggestions Dropdown
         AnimatedVisibility(
             visible = showSuggestions,
-            enter = fadeIn() + slideInVertically(),
-            exit = fadeOut()
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
         ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            Column(
+                modifier = Modifier.padding(top = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Column {
-                    suggestions.forEach { city ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onCitySelected(city) }
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "📍",
-                                fontSize = 16.sp
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = city.name,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = buildString {
-                                        city.admin1?.let { append("$it, ") }
-                                        append(city.country)
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
+                suggestions.forEach { city ->
+                    PanelCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSuggestionSelected(city) }
+                    ) {
+                        Text(
+                            text = city.formattedName(),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
             }
@@ -269,205 +256,108 @@ private fun SearchSection(
     }
 }
 
-/**
- * Weather data display with animated cards.
- */
 @Composable
-private fun WeatherContent(state: WeatherUiState) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            )
-            .padding(horizontal = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // City Name
-        Text(
-            text = state.cityName,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Weather Emoji + Condition
-        Text(
-            text = state.weatherEmoji,
-            fontSize = 80.sp
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = state.weatherCondition,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Temperature - Big display
-        Text(
-            text = "${String.format("%.1f", state.temperature)}°C",
-            style = MaterialTheme.typography.displayMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Weather Details Grid (2x2)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            WeatherDetailCard(
-                modifier = Modifier.weight(1f),
-                icon = Icons.Default.WaterDrop,
-                label = "Humidity",
-                value = "${state.humidity}%"
-            )
-            WeatherDetailCard(
-                modifier = Modifier.weight(1f),
-                icon = Icons.Default.Compress,
-                label = "Pressure",
-                value = "${String.format("%.0f", state.pressure)} hPa"
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            WeatherDetailCard(
-                modifier = Modifier.weight(1f),
-                icon = Icons.Default.Air,
-                label = "Wind Speed",
-                value = "${String.format("%.1f", state.windSpeed)} km/h"
-            )
-            WeatherDetailCard(
-                modifier = Modifier.weight(1f),
-                icon = Icons.Default.Thermostat,
-                label = "Feels Like",
-                value = state.weatherCondition
-            )
-        }
-
-        Spacer(modifier = Modifier.height(80.dp)) // Space for FAB
-    }
-}
-
-/**
- * Individual weather detail card.
- */
-@Composable
-private fun WeatherDetailCard(
-    modifier: Modifier = Modifier,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    value: String
+private fun WeatherSummaryCard(
+    weather: WeatherDetails,
+    onCreateReport: () -> Unit
 ) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+    PanelCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
         ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = weather.cityName,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = weather.weatherCondition,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            MetricCard(
+                label = "Temperature",
+                value = formatTemperature(weather.temperature),
+                accent = MaterialTheme.colorScheme.tertiary
+            )
+        }
+
+        Spacer(modifier = Modifier.height(18.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            MetricCard(
+                label = "Humidity",
+                value = "${weather.humidity}%",
+                accent = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.weight(1f),
+                icon = Icons.Default.WaterDrop
+            )
+            MetricCard(
+                label = "Wind",
+                value = formatWindSpeed(weather.windSpeed),
+                accent = MaterialTheme.colorScheme.secondary.copy(alpha = 0.8f),
+                modifier = Modifier.weight(1f),
+                icon = Icons.Default.Air
+            )
+            MetricCard(
+                label = "Pressure",
+                value = formatPressure(weather.pressure),
+                accent = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.9f),
+                modifier = Modifier.weight(1f),
+                icon = Icons.Default.Compress
+            )
+        }
+
+        Spacer(modifier = Modifier.height(18.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "Report readiness",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "Camera and Room database are enabled",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Icon(
-                imageVector = icon,
-                contentDescription = label,
-                modifier = Modifier.size(28.dp),
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
-            )
         }
-    }
-}
 
-/**
- * Loading state with spinner.
- */
-@Composable
-private fun LoadingState() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(300.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(48.dp),
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Fetching weather data...",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
+        Spacer(modifier = Modifier.height(20.dp))
 
-/**
- * Empty state shown when no city has been searched yet.
- */
-@Composable
-private fun EmptyState() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(400.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "🌍",
-                fontSize = 64.sp
+        Button(
+            onClick = onCreateReport,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(54.dp),
+            shape = MaterialTheme.shapes.extraLarge,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Search for a City",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Type a city name above to get\ncurrent weather conditions",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
+        ) {
+            Icon(Icons.Default.Search, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Create Report", style = MaterialTheme.typography.titleMedium)
         }
     }
 }

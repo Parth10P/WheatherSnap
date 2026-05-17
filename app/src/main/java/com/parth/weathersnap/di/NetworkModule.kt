@@ -1,5 +1,4 @@
 package com.parth.weathersnap.di
-
 import com.parth.weathersnap.data.remote.GeocodingApiService
 import com.parth.weathersnap.data.remote.WeatherApiService
 import com.parth.weathersnap.utils.Constants
@@ -36,7 +35,7 @@ object NetworkModule {
     @Singleton
     fun provideLoggingInterceptor(): HttpLoggingInterceptor {
         return HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = HttpLoggingInterceptor.Level.BASIC
         }
     }
 

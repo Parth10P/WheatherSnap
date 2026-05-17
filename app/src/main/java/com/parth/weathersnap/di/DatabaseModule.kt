@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.parth.weathersnap.data.local.WeatherReportDao
 import com.parth.weathersnap.data.local.WeatherSnapDatabase
+import com.parth.weathersnap.utils.Constants
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -21,12 +22,6 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
-    /**
-     * Provides the Room database instance.
-     * Uses fallbackToDestructiveMigration for development convenience.
-     *
-     * TODO: Replace with proper migrations before production release
-     */
     @Provides
     @Singleton
     fun provideDatabase(
@@ -35,7 +30,7 @@ object DatabaseModule {
         return Room.databaseBuilder(
             context,
             WeatherSnapDatabase::class.java,
-            "weathersnap_database"
+            Constants.DATABASE_NAME
         )
             .fallbackToDestructiveMigration()
             .build()
