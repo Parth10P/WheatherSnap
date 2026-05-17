@@ -87,13 +87,22 @@ fun CreateReportScreen(
             item {
                 HeaderCard(
                     title = "Create Report",
-                    subtitle = "Attach notes and camera evidence for ${uiState.cityName}",
+                    subtitle = "Attach notes and camera evidence for ${uiState.cityName.replace("+", " ")}",
                     actionLabel = "Back",
                     onActionClick = onNavigateBack
                 )
             }
 
             item { WeatherSummarySection(uiState) }
+
+            item {
+                PhotoSection(
+                    imagePath = uiState.imagePath,
+                    originalSize = uiState.originalImageSize,
+                    compressedSize = uiState.compressedImageSize,
+                    onCapture = onNavigateToCamera
+                )
+            }
 
             item {
                 PanelCard {
@@ -130,15 +139,6 @@ fun CreateReportScreen(
             }
 
             item {
-                PhotoSection(
-                    imagePath = uiState.imagePath,
-                    originalSize = uiState.originalImageSize,
-                    compressedSize = uiState.compressedImageSize,
-                    onCapture = onNavigateToCamera
-                )
-            }
-
-            item {
                 PrimaryActionButton(
                     text = if (uiState.isLoading) "Saving Report" else "Save Report",
                     onClick = viewModel::saveReport,
@@ -169,13 +169,13 @@ private fun WeatherSummarySection(uiState: CreateReportUiState) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = uiState.cityName,
+                    text = uiState.cityName.replace("+", " "),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = uiState.weatherCondition,
+                    text = uiState.weatherCondition.replace("+", " "),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp)
@@ -227,7 +227,7 @@ private fun WeatherSummarySection(uiState: CreateReportUiState) {
             )
             MetricCard(
                 label = "Condition",
-                value = uiState.weatherCondition,
+                value = uiState.weatherCondition.replace("+", " "),
                 accent = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f),
                 icon = Icons.Default.Thermostat

@@ -204,7 +204,7 @@ private fun ReportCard(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = report.cityName,
+                            text = report.cityName.replace("+", " "),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -212,7 +212,7 @@ private fun ReportCard(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = report.weatherCondition,
+                            text = report.weatherCondition.replace("+", " "),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -260,12 +260,27 @@ private fun ReportCard(
                     )
                 }
 
-                Text(
-                    text = formatTimestamp(report.timestamp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = formatTimestamp(report.timestamp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    if (report.originalImageSize > 0 && report.compressedImageSize > 0) {
+                        Text(
+                            text = "${ImageCompressor.formatFileSize(report.originalImageSize)} ➔ ${ImageCompressor.formatFileSize(report.compressedImageSize)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                    }
+                }
             }
         }
 
