@@ -1,25 +1,15 @@
 package com.parth.weathersnap.ui.savedreports
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Compress
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,9 +36,11 @@ import com.parth.weathersnap.ui.components.BorderedActionChip
 import com.parth.weathersnap.ui.components.EmptyStateCard
 import com.parth.weathersnap.ui.components.FramedImage
 import com.parth.weathersnap.ui.components.HeaderCard
+import com.parth.weathersnap.ui.components.LoadingPlaceholderCard
 import com.parth.weathersnap.ui.components.MetricCard
 import com.parth.weathersnap.ui.components.PanelCard
 import com.parth.weathersnap.ui.components.WeatherSnapBackground
+import com.parth.weathersnap.ui.theme.WeatherSnapDimens
 import com.parth.weathersnap.utils.ImageCompressor
 import com.parth.weathersnap.utils.formatPressure
 import com.parth.weathersnap.utils.formatTemperature
@@ -76,7 +68,7 @@ fun SavedReportsScreen(
         AlertDialog(
             onDismissRequest = { showDeleteAllDialog = false },
             title = { Text("Delete all reports?") },
-            text = { Text("This removes every saved report and its stored photo.") },
+            text = { Text("This removes every saved report and the stored images attached to them.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -99,8 +91,9 @@ fun SavedReportsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .navigationBarsPadding()
+                .padding(horizontal = WeatherSnapDimens.screenPadding, vertical = WeatherSnapDimens.screenPadding),
+            verticalArrangement = Arrangement.spacedBy(WeatherSnapDimens.sectionSpacing)
         ) {
             SnackbarHost(hostState = snackbarHostState)
 
@@ -121,36 +114,23 @@ fun SavedReportsScreen(
 
             when {
                 uiState.isLoading -> {
-                    PanelCard {
-                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            CircularProgressIndicator(strokeWidth = 2.5.dp)
-                            Column {
-                                Text(
-                                    text = "Loading reports",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    text = "Reading locally saved reports from the database.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
+                    LoadingPlaceholderCard(
+                        title = "Loading saved reports",
+                        subtitle = "Reading locally stored reports and preparing the image previews."
+                    )
                 }
 
                 uiState.reports.isEmpty() -> {
                     EmptyStateCard(
                         title = "No saved reports",
-                        message = "Create a weather report after searching for a city and capturing a photo."
+                        message = "Create a weather report with notes and a photo to see it listed here."
                     )
                 }
 
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(WeatherSnapDimens.sectionSpacing)
                     ) {
                         items(uiState.reports, key = { it.id }) { report ->
                             ReportCard(
@@ -201,7 +181,7 @@ private fun ReportCard(
                 FramedImage(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(240.dp)
+                        .height(228.dp)
                 ) {
                     Image(
                         painter = rememberAsyncImagePainter(model = File(path)),
@@ -224,34 +204,29 @@ private fun ReportCard(
                     text = report.cityName,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = report.weatherCondition,
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
                 Text(
                     text = formatTimestamp(report.timestamp),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 6.dp)
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                MetricCard(
-                    label = "Temperature",
-                    value = formatTemperature(report.temperature),
-                    accent = MaterialTheme.colorScheme.tertiary
+            IconButton(onClick = { showDeleteDialog = true }) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete report",
+                    tint = MaterialTheme.colorScheme.error
                 )
-                IconButton(onClick = { showDeleteDialog = true }) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete report",
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                }
             }
         }
 
@@ -262,12 +237,26 @@ private fun ReportCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             MetricCard(
+                label = "Temperature",
+                value = formatTemperature(report.temperature),
+                accent = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.weight(1f)
+            )
+            MetricCard(
                 label = "Humidity",
                 value = "${report.humidity}%",
                 accent = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.weight(1f),
                 icon = Icons.Default.WaterDrop
             )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             MetricCard(
                 label = "Wind",
                 value = formatWindSpeed(report.windSpeed),
@@ -288,7 +277,7 @@ private fun ReportCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp),
+                    .padding(top = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 MetricCard(

@@ -60,6 +60,7 @@ fun WeatherSnapTheme(
     MaterialTheme(
         colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
         typography = Typography,
+        shapes = WeatherSnapShapes,
         content = content
     )
 }

@@ -5,18 +5,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.CameraAlt
@@ -24,10 +14,6 @@ import androidx.compose.material.icons.filled.Compress
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -45,13 +31,16 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.rememberAsyncImagePainter
-import com.parth.weathersnap.ui.components.BorderedActionChip
 import com.parth.weathersnap.ui.components.EmptyStateCard
 import com.parth.weathersnap.ui.components.FramedImage
 import com.parth.weathersnap.ui.components.HeaderCard
+import com.parth.weathersnap.ui.components.InlineStatusCard
 import com.parth.weathersnap.ui.components.MetricCard
 import com.parth.weathersnap.ui.components.PanelCard
+import com.parth.weathersnap.ui.components.PrimaryActionButton
+import com.parth.weathersnap.ui.components.SecondaryActionButton
 import com.parth.weathersnap.ui.components.WeatherSnapBackground
+import com.parth.weathersnap.ui.theme.WeatherSnapDimens
 import com.parth.weathersnap.utils.ImageCompressor
 import com.parth.weathersnap.utils.formatPressure
 import com.parth.weathersnap.utils.formatTemperature
@@ -82,80 +71,80 @@ fun CreateReportScreen(
     }
 
     WeatherSnapBackground(modifier = Modifier.fillMaxSize()) {
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
                 .imePadding()
-                .padding(horizontal = 16.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .navigationBarsPadding()
+                .padding(horizontal = WeatherSnapDimens.screenPadding),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                vertical = WeatherSnapDimens.screenPadding
+            ),
+            verticalArrangement = Arrangement.spacedBy(WeatherSnapDimens.sectionSpacing)
         ) {
-            SnackbarHost(hostState = snackbarHostState)
+            item { SnackbarHost(hostState = snackbarHostState) }
 
-            HeaderCard(
-                title = "Create Report",
-                subtitle = "Attach notes and camera evidence for ${uiState.cityName}",
-                actionLabel = "Back",
-                onActionClick = onNavigateBack
-            )
-
-            WeatherSummarySection(uiState)
-
-            PanelCard {
-                Text(
-                    text = "Notes",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                OutlinedTextField(
-                    value = uiState.description,
-                    onValueChange = viewModel::onDescriptionChanged,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(160.dp),
-                    placeholder = {
-                        Text("Describe what the weather looks like and anything notable on the ground.")
-                    },
-                    shape = MaterialTheme.shapes.large,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                        focusedContainerColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.18f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.14f)
-                    )
+            item {
+                HeaderCard(
+                    title = "Create Report",
+                    subtitle = "Attach notes and camera evidence for ${uiState.cityName}",
+                    actionLabel = "Back",
+                    onActionClick = onNavigateBack
                 )
             }
 
-            PhotoSection(
-                imagePath = uiState.imagePath,
-                originalSize = uiState.originalImageSize,
-                compressedSize = uiState.compressedImageSize,
-                onCapture = onNavigateToCamera
-            )
+            item { WeatherSummarySection(uiState) }
 
-            Button(
-                onClick = viewModel::saveReport,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                enabled = !uiState.isLoading,
-                shape = MaterialTheme.shapes.extraLarge,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
+            item {
+                PanelCard {
+                    Text(
+                        text = "Notes",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold
                     )
-                } else {
-                    Icon(Icons.Default.Save, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Save Report", style = MaterialTheme.typography.titleMedium)
+                    InlineStatusCard(
+                        title = "What to include",
+                        message = "Describe the scene, visibility, cloud cover, rainfall, or any detail that helps the report feel complete.",
+                        modifier = Modifier.padding(top = 12.dp)
+                    )
+                    OutlinedTextField(
+                        value = uiState.description,
+                        onValueChange = viewModel::onDescriptionChanged,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 14.dp),
+                        minLines = 5,
+                        placeholder = {
+                            Text("Example: Light wind, scattered clouds, roads are dry and visibility is clear.")
+                        },
+                        shape = MaterialTheme.shapes.large,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
+                            focusedContainerColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.18f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.12f)
+                        )
+                    )
                 }
+            }
+
+            item {
+                PhotoSection(
+                    imagePath = uiState.imagePath,
+                    originalSize = uiState.originalImageSize,
+                    compressedSize = uiState.compressedImageSize,
+                    onCapture = onNavigateToCamera
+                )
+            }
+
+            item {
+                PrimaryActionButton(
+                    text = if (uiState.isLoading) "Saving Report" else "Save Report",
+                    onClick = viewModel::saveReport,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !uiState.isLoading,
+                    icon = if (uiState.isLoading) null else Icons.Default.Save
+                )
             }
         }
     }
@@ -164,8 +153,16 @@ fun CreateReportScreen(
 @Composable
 private fun WeatherSummarySection(uiState: CreateReportUiState) {
     PanelCard {
+        Text(
+            text = "Weather Summary",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 14.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -174,25 +171,26 @@ private fun WeatherSummarySection(uiState: CreateReportUiState) {
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.SemiBold
                 )
-                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = uiState.weatherCondition,
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
 
             MetricCard(
                 label = "Temperature",
                 value = formatTemperature(uiState.temperature),
-                accent = MaterialTheme.colorScheme.tertiary
+                accent = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.width(132.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             MetricCard(
@@ -211,10 +209,10 @@ private fun WeatherSummarySection(uiState: CreateReportUiState) {
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             MetricCard(
@@ -248,15 +246,18 @@ private fun PhotoSection(
         label = "photo_section"
     ) { path ->
         if (path == null) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            PanelCard {
                 EmptyStateCard(
                     title = "No photo attached",
-                    message = "Capture a photo from the camera screen to include evidence with the report."
+                    message = "Capture a weather photo before saving so the report includes visual evidence."
                 )
-                BorderedActionChip(
+                SecondaryActionButton(
                     text = "Open Camera",
                     onClick = onCapture,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 14.dp),
+                    icon = Icons.Default.CameraAlt
                 )
             }
         } else {
@@ -266,11 +267,11 @@ private fun PhotoSection(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold
                 )
-                Spacer(modifier = Modifier.height(12.dp))
                 FramedImage(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(220.dp)
+                        .padding(top = 14.dp)
+                        .height(WeatherSnapDimens.imageHeight)
                 ) {
                     Image(
                         painter = rememberAsyncImagePainter(model = File(path)),
@@ -279,9 +280,11 @@ private fun PhotoSection(
                         contentScale = ContentScale.Crop
                     )
                 }
-                Spacer(modifier = Modifier.height(14.dp))
+
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 14.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     MetricCard(
@@ -297,11 +300,14 @@ private fun PhotoSection(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                Spacer(modifier = Modifier.height(14.dp))
-                BorderedActionChip(
+
+                SecondaryActionButton(
                     text = "Retake Photo",
                     onClick = onCapture,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 14.dp),
+                    icon = Icons.Default.CameraAlt
                 )
             }
         }

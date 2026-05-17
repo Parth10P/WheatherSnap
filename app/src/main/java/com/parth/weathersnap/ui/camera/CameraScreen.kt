@@ -14,23 +14,13 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -61,7 +51,10 @@ import com.parth.weathersnap.ui.components.FramedImage
 import com.parth.weathersnap.ui.components.HeaderCard
 import com.parth.weathersnap.ui.components.MetricCard
 import com.parth.weathersnap.ui.components.PanelCard
+import com.parth.weathersnap.ui.components.PrimaryActionButton
+import com.parth.weathersnap.ui.components.SecondaryActionButton
 import com.parth.weathersnap.ui.components.WeatherSnapBackground
+import com.parth.weathersnap.ui.theme.WeatherSnapDimens
 import com.parth.weathersnap.utils.ImageCompressor
 import java.io.File
 
@@ -106,14 +99,15 @@ fun CameraScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .navigationBarsPadding()
+                .padding(horizontal = WeatherSnapDimens.screenPadding, vertical = WeatherSnapDimens.screenPadding),
+            verticalArrangement = Arrangement.spacedBy(WeatherSnapDimens.sectionSpacing)
         ) {
             SnackbarHost(hostState = snackbarHostState)
 
             HeaderCard(
                 title = "Camera",
-                subtitle = "Capture an image and compress it before saving the report.",
+                subtitle = "Capture a clean weather image, then review compression before attaching it to the report.",
                 actionLabel = "Back",
                 onActionClick = onNavigateBack
             )
@@ -121,7 +115,7 @@ fun CameraScreen(
             AnimatedContent(
                 targetState = uiState.hasCapturedImage,
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "camera_content"
+                label = "camera_state"
             ) { hasCapturedImage ->
                 when {
                     !hasCameraPermission -> PermissionContent {
@@ -154,18 +148,18 @@ fun CameraScreen(
 
 @Composable
 private fun PermissionContent(onRequestPermission: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    PanelCard {
         EmptyStateCard(
             title = "Camera permission required",
-            message = "Allow camera access to take a photo for each weather report."
+            message = "Allow camera access so each report can include a locally captured weather image."
         )
-        Button(
+        PrimaryActionButton(
+            text = "Allow Camera Access",
             onClick = onRequestPermission,
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.extraLarge
-        ) {
-            Text("Allow Camera Access")
-        }
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 14.dp)
+        )
     }
 }
 
@@ -182,11 +176,11 @@ private fun CameraCaptureContent(
         FramedImage(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(460.dp)
+                .height(520.dp)
         ) {
             AndroidView(
-                factory = { viewContext ->
-                    PreviewView(viewContext).apply {
+                factory = { previewContext ->
+                    PreviewView(previewContext).apply {
                         implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                         scaleType = PreviewView.ScaleType.FILL_CENTER
                     }
@@ -215,35 +209,36 @@ private fun CameraCaptureContent(
                     }, ContextCompat.getMainExecutor(context))
                 }
             )
-        }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            FilledIconButton(
-                onClick = onCapture,
-                enabled = !isCapturing,
-                modifier = Modifier.size(72.dp),
-                shape = CircleShape,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 22.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f),
+                        shape = CircleShape
+                    )
+                    .padding(14.dp)
             ) {
-                if (isCapturing) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(28.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.5.dp
+                FilledIconButton(
+                    onClick = onCapture,
+                    enabled = !isCapturing,
+                    modifier = Modifier.size(72.dp),
+                    shape = CircleShape,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.CameraAlt,
-                        contentDescription = "Capture photo"
-                    )
+                ) {
+                    if (isCapturing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(28.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.5.dp
+                        )
+                    } else {
+                        Icon(Icons.Default.CameraAlt, contentDescription = "Capture photo")
+                    }
                 }
             }
         }
@@ -258,7 +253,10 @@ private fun PreviewContent(
     onRetake: () -> Unit,
     onUsePhoto: () -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(WeatherSnapDimens.sectionSpacing)
+    ) {
         PanelCard {
             FramedImage(
                 modifier = Modifier
@@ -296,33 +294,18 @@ private fun PreviewContent(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Button(
+            SecondaryActionButton(
+                text = "Retake",
                 onClick = onRetake,
                 modifier = Modifier.weight(1f),
-                shape = MaterialTheme.shapes.extraLarge,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurface
-                )
-            ) {
-                Icon(Icons.Default.Refresh, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Retake")
-            }
-
-            Button(
+                icon = Icons.Default.Refresh
+            )
+            PrimaryActionButton(
+                text = "Use Photo",
                 onClick = onUsePhoto,
                 modifier = Modifier.weight(1f),
-                shape = MaterialTheme.shapes.extraLarge,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                Icon(Icons.Default.Check, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Use Photo")
-            }
+                icon = Icons.Default.Check
+            )
         }
     }
 }
