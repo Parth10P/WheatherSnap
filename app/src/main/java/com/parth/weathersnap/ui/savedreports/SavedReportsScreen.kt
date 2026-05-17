@@ -24,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -176,122 +177,94 @@ private fun ReportCard(
     }
 
     PanelCard {
-        report.imagePath?.let { path ->
-            if (File(path).exists()) {
-                FramedImage(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(228.dp)
-                ) {
-                    Image(
-                        painter = rememberAsyncImagePainter(model = File(path)),
-                        contentDescription = "Report image",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            report.imagePath?.let { path ->
+                if (File(path).exists()) {
+                    FramedImage(
+                        modifier = Modifier.size(100.dp)
+                    ) {
+                        Image(
+                            painter = rememberAsyncImagePainter(model = File(path)),
+                            contentDescription = "Report image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
                 }
             }
-        }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = report.cityName,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = report.weatherCondition,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = report.cityName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = report.weatherCondition,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { showDeleteDialog = true },
+                        modifier = Modifier
+                            .size(28.dp)
+                            .offset(x = 8.dp, y = (-8).dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete report",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = formatTemperature(report.temperature),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                    Text(
+                        text = "${report.humidity}% hum",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                    Text(
+                        text = formatWindSpeed(report.windSpeed),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.82f)
+                    )
+                }
+
                 Text(
                     text = formatTimestamp(report.timestamp),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 6.dp)
-                )
-            }
-
-            IconButton(onClick = { showDeleteDialog = true }) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete report",
-                    tint = MaterialTheme.colorScheme.error
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            MetricCard(
-                label = "Temperature",
-                value = formatTemperature(report.temperature),
-                accent = MaterialTheme.colorScheme.tertiary,
-                modifier = Modifier.weight(1f)
-            )
-            MetricCard(
-                label = "Humidity",
-                value = "${report.humidity}%",
-                accent = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.weight(1f),
-                icon = Icons.Default.WaterDrop
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            MetricCard(
-                label = "Wind",
-                value = formatWindSpeed(report.windSpeed),
-                accent = MaterialTheme.colorScheme.secondary.copy(alpha = 0.82f),
-                modifier = Modifier.weight(1f),
-                icon = Icons.Default.Air
-            )
-            MetricCard(
-                label = "Pressure",
-                value = formatPressure(report.pressure),
-                accent = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.92f),
-                modifier = Modifier.weight(1f),
-                icon = Icons.Default.Compress
-            )
-        }
-
-        if (report.originalImageSize > 0) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                MetricCard(
-                    label = "Original",
-                    value = ImageCompressor.formatFileSize(report.originalImageSize),
-                    accent = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.86f),
-                    modifier = Modifier.weight(1f)
-                )
-                MetricCard(
-                    label = "Compressed",
-                    value = ImageCompressor.formatFileSize(report.compressedImageSize),
-                    accent = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.padding(top = 8.dp)
                 )
             }
         }
@@ -299,9 +272,11 @@ private fun ReportCard(
         if (report.description.isNotBlank()) {
             Text(
                 text = report.description,
-                modifier = Modifier.padding(top = 16.dp),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
+                modifier = Modifier.padding(top = 12.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
